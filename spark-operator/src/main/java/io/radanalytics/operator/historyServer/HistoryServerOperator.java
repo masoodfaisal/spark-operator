@@ -4,6 +4,7 @@ import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.radanalytics.operator.common.AbstractOperator;
 import io.radanalytics.operator.common.Operator;
+import io.radanalytics.operator.crd.SparkHistoryServerList;
 import io.radanalytics.types.SparkHistoryServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +30,7 @@ public class HistoryServerOperator extends AbstractOperator<SparkHistoryServer> 
     private Map<String, SparkHistoryServer> hss;
 
     public HistoryServerOperator() {
-        this.hss = new HashMap<>();
+        super(); this.hss = new HashMap<>();
     }
 
     private void put(SparkHistoryServer hs) {

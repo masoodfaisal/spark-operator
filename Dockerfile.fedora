@@ -1,0 +1,5 @@
+FROM adoptopenjdk/openjdk11
+RUN mkdir /app
+ADD spark-operator/target /app
+
+CMD ["java", "-jar", "/app/quarkus-app/quarkus-run.jar"]

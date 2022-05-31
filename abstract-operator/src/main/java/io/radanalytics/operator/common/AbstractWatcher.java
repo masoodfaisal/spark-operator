@@ -1,11 +1,11 @@
 package io.radanalytics.operator.common;
 
+import io.fabric8.kubernetes.api.model.ListOptions;
+import io.fabric8.kubernetes.api.model.ListOptionsBuilder;
 import io.fabric8.kubernetes.api.model.apiextensions.v1.CustomResourceDefinition;
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.ConfigMapList;
-import io.fabric8.kubernetes.client.*;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.WatcherException;
@@ -13,8 +13,8 @@ import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.kubernetes.client.dsl.Watchable;
 import io.radanalytics.operator.SDKEntrypoint;
-import io.radanalytics.operator.common.crd.InfoClass;
-import io.radanalytics.operator.common.crd.InfoList;
+import io.radanalytics.operator.common.crd.SparkCluster;
+import io.radanalytics.operator.common.crd.SparkClusterList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +43,7 @@ public abstract class AbstractWatcher<T extends EntityInfo> {
 
     private final Predicate<ConfigMap> isSupported;
     private final Function<ConfigMap, T> convert;
-    private final Function<InfoClass, T> convertCr;
+    private final Function<SparkCluster, T> convertCr;
 
     private volatile Watch watch;
     protected volatile boolean fullReconciliationRun = false;
@@ -52,7 +52,7 @@ public abstract class AbstractWatcher<T extends EntityInfo> {
     protected AbstractWatcher(boolean isCrd, String namespace, String entityName, KubernetesClient client,
                               CustomResourceDefinition crd, Map<String, String> selector, BiConsumer<T, String> onAdd,
                               BiConsumer<T, String> onDelete, BiConsumer<T, String> onModify, Predicate<ConfigMap> isSupported,
-                              Function<ConfigMap, T> convert, Function<InfoClass, T> convertCr) {
+                              Function<ConfigMap, T> convert, Function<SparkCluster, T> convertCr) {
         this.isCrd = isCrd;
         this.namespace = namespace;
         this.entityName = entityName;
@@ -118,15 +118,41 @@ public abstract class AbstractWatcher<T extends EntityInfo> {
     }
 
     protected CompletableFuture<Watch> createCustomResourceWatch() {
+        log.info("1111 {}", client);
         CompletableFuture<Watch> cf = CompletableFuture.supplyAsync(() -> {
-            MixedOperation<InfoClass, InfoList, Resource<InfoClass>> aux =
-                    client.resources(InfoClass.class, InfoList.class);
+            log.info("222222 {}", entityName);
+
+
+            MixedOperation<SparkCluster, SparkClusterList, Resource<SparkCluster>> aux = client.resources(SparkCluster.class, SparkClusterList.class);
+
+
+
+            //temp hack
+            String kind = null;
+            if(entityName.toLowerCase().startsWith("sparkapplication")){
+                kind = "SparkApplication";
+            }else if(entityName.toLowerCase().startsWith("sparkcluster")){
+                kind = "SparkCluster";
+            }else if(entityName.toLowerCase().startsWith("sparkhistoryserver")){
+                kind = "SparkHistoryServer";
+            }
+
+            log.info("3333 {}", aux);
 
             final boolean inAllNs = "*".equals(namespace);
-            Watchable<Watcher<InfoClass>> watchable = inAllNs ? aux.inAnyNamespace() : aux.inNamespace(namespace);
-            Watch watch = watchable.watch(new Watcher<InfoClass>() {
+            log.info("4444 {} and {}", inAllNs, namespace);
+
+            Watchable<Watcher<SparkCluster>> watchable = inAllNs ? aux.inAnyNamespace() : aux.inNamespace(namespace);
+            log.info("5555 {} and {}", watchable, namespace);
+
+            ListOptions listOptions = new ListOptionsBuilder()
+                    .withKind("SparkCluster")
+                    .withApiVersion("radanalytics.io/v1")
+                    .build();
+
+            Watch watch = watchable.watch( listOptions, new Watcher<SparkCluster>() {
                 @Override
-                public void eventReceived(Action action, InfoClass info) {
+                public void eventReceived(Action action, SparkCluster info) {
                     log.info("Custom resource in namespace {} was {}\nCR:\n{}", namespace, action, info);
                     T entity = convertCr.apply(info);
                     if (entity == null) {
@@ -149,13 +175,16 @@ public abstract class AbstractWatcher<T extends EntityInfo> {
                     }
                 }
             });
+            log.info("6666 {} and {}", watchable, namespace);
             AbstractWatcher.this.watch = watch;
             return watch;
         }, SDKEntrypoint.getExecutors());
         cf.thenApply(w -> {
+
             log.info("CustomResource watcher running for kinds {}", entityName);
             return w;
         }).exceptionally(e -> {
+            e.printStackTrace();
             log.error("CustomResource watcher failed to start", e.getCause());
             return null;
         });

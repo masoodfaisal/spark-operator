@@ -6,14 +6,13 @@ import com.google.common.collect.Sets;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.api.model.ReplicationController;
 import io.fabric8.kubernetes.api.model.ReplicationControllerList;
-import io.fabric8.kubernetes.client.Watch;
-import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.FilterWatchListMultiDeletable;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.RollableScalableResource;
 import io.radanalytics.operator.Constants;
 import io.radanalytics.operator.common.AbstractOperator;
 import io.radanalytics.operator.common.Operator;
+
 import io.radanalytics.types.Master;
 import io.radanalytics.types.SparkCluster;
 import io.radanalytics.types.Worker;
@@ -34,7 +33,8 @@ import static io.radanalytics.operator.resource.LabelsHelper.OPERATOR_RC_TYPE_LA
 @Operator(forKind = SparkCluster.class, prefix = "radanalytics.io",
         additionalPrinterColumnNames = {"Workers", "Age"},
         additionalPrinterColumnPaths = {".spec.worker.instances", ".metadata.creationTimestamp"},
-        additionalPrinterColumnTypes = {"string", "date"})
+        additionalPrinterColumnTypes = {"string", "date"},
+        pluralName = "sparkclusters")
 public class SparkClusterOperator extends AbstractOperator<SparkCluster> {
 
     @Inject
@@ -45,7 +45,7 @@ public class SparkClusterOperator extends AbstractOperator<SparkCluster> {
     private KubernetesSparkClusterDeployer deployer;
 
     public SparkClusterOperator() {
-
+        super();
     }
 
     private void updateStatus(SparkCluster cluster, String state) {

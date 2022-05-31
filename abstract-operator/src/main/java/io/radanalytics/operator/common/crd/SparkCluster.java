@@ -2,19 +2,19 @@ package io.radanalytics.operator.common.crd;
 
 import io.fabric8.kubernetes.client.CustomResource;
 
-public class InfoClass<U> extends CustomResource {
+public class SparkCluster<U> extends CustomResource {
     private U spec;
-    private InfoStatus status;
+    private SparkStatus status;
 
-    public InfoClass() {
-        this.status = new InfoStatus();
+    public SparkCluster() {
+        this.status = new SparkStatus();
     }
 
-    public InfoStatus getStatus() {
+    public SparkStatus getStatus() {
         return this.status;
     }
 
-    public void setStatus(InfoStatus status) {
+    public void setStatus(SparkStatus status) {
         this.status = status;
     }
 

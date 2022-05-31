@@ -3,16 +3,14 @@ package io.radanalytics.operator.common;
 import io.fabric8.kubernetes.client.*;
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.ConfigMapList;
-import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.api.model.apiextensions.v1.CustomResourceDefinition;
-import io.fabric8.kubernetes.api.model.apiextensions.v1.CustomResourceDefinitionList;
 import io.fabric8.kubernetes.client.dsl.FilterWatchListMultiDeletable;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import io.radanalytics.operator.common.crd.CrdDeployer;
-import io.radanalytics.operator.common.crd.InfoClass;
-import io.radanalytics.operator.common.crd.InfoStatus;
-import io.radanalytics.operator.common.crd.InfoList;
+import io.radanalytics.operator.common.crd.SparkCluster;
+import io.radanalytics.operator.common.crd.SparkStatus;
+import io.radanalytics.operator.common.crd.SparkClusterList;
 import io.radanalytics.operator.resource.LabelsHelper;
 import org.slf4j.Logger;
 
@@ -74,8 +72,10 @@ public abstract class AbstractOperator<T extends EntityInfo> {
     private volatile AbstractWatcher watch;
 
     public AbstractOperator() {
+        System.out.println("((((( I AM CALLED");
         Operator annotation = getClass().getAnnotation(Operator.class);
         if (annotation != null) {
+            System.out.println("((((( I AM CALLED - SETTINGS ANNOTAIOTNS" + annotation);
             this.infoClass = (Class<T>) annotation.forKind();
             this.named = annotation.named();
             this.isCrd = annotation.crd();
@@ -231,7 +231,7 @@ public abstract class AbstractOperator<T extends EntityInfo> {
         return ConfigMapWatcher.defaultConvert(infoClass, cm);
     }
 
-    protected T convertCr(InfoClass info) {
+    protected T convertCr(SparkCluster info) {
         return CustomResourceWatcher.defaultConvert(infoClass, info);
     }
 
@@ -277,6 +277,7 @@ public abstract class AbstractOperator<T extends EntityInfo> {
                         Optional.ofNullable(namespace).orElse("'all'"));
                 return res;
         }).exceptionally(e -> {
+            e.printStackTrace();
             log.error("{} startup failed for namespace {}", operatorName, namespace, e.getCause());
             return null;
         });
@@ -286,6 +287,11 @@ public abstract class AbstractOperator<T extends EntityInfo> {
     private CompletableFuture<? extends AbstractWatcher<T>> initializeWatcher() {
         CompletableFuture<? extends AbstractWatcher<T>> future;
         if (isCrd) {
+            log.info("DATA\n");
+
+            log.info("ename is {}", entityName);
+            log.info("namespace is {}", namespace);
+            log.info("crd is {}, {}, {}, {}, {}", crd.getApiVersion(), crd.getSpec(), crd.getMetadata(), crd.getKind(), crd.getSingular());
             CustomResourceWatcher.Builder<T> crBuilder = new CustomResourceWatcher.Builder<>();
             CustomResourceWatcher crWatcher = crBuilder.withClient(client)
                     .withCrd(crd)
@@ -363,12 +369,12 @@ public abstract class AbstractOperator<T extends EntityInfo> {
     protected Set<T> getDesiredSet() {
         Set<T> desiredSet;
         if (isCrd) {
-            MixedOperation<InfoClass, InfoList, Resource<InfoClass>> aux1 =
-                    client.resources(InfoClass.class, InfoList.class);
-            FilterWatchListMultiDeletable<InfoClass, InfoList> aux2 =
+            MixedOperation<SparkCluster, SparkClusterList, Resource<SparkCluster>> aux1 =
+                    client.resources(SparkCluster.class, SparkClusterList.class);
+            FilterWatchListMultiDeletable<SparkCluster, SparkClusterList> aux2 =
                     "*".equals(namespace) ? aux1.inAnyNamespace() : aux1.inNamespace(namespace);
-            CustomResourceList<InfoClass> listAux = aux2.list();
-            List<InfoClass> items = listAux.getItems();
+            CustomResourceList<SparkCluster> listAux = aux2.list();
+            List<SparkCluster> items = listAux.getItems();
             desiredSet = items.stream().flatMap(item -> {
                 try {
                     return Stream.of(convertCr(item));
@@ -409,12 +415,12 @@ public abstract class AbstractOperator<T extends EntityInfo> {
      **/
     protected void setCRStatus(String status, String namespace, String name) {
         if (isCrd) {
-            MixedOperation<InfoClass, InfoList, Resource<InfoClass>> crclient =
-                    client.resources(InfoClass.class, InfoList.class);
+            MixedOperation<SparkCluster, SparkClusterList, Resource<SparkCluster>> crclient =
+                    client.resources(SparkCluster.class, SparkClusterList.class);
 
-            InfoClass cr = crclient.inNamespace(namespace).withName(name).get();
+            SparkCluster cr = crclient.inNamespace(namespace).withName(name).get();
             if (cr != null) {
-                cr.setStatus(new InfoStatus(status, new Date()));
+                cr.setStatus(new SparkStatus(status, new Date()));
                 crclient.inNamespace(namespace).withName(name).updateStatus(cr);
             }
         }

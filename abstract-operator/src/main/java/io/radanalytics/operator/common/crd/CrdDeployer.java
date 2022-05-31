@@ -1,11 +1,7 @@
 package io.radanalytics.operator.common.crd;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import io.fabric8.kubernetes.api.model.apiextensions.v1.CustomResourceDefinition;
-import io.fabric8.kubernetes.api.model.apiextensions.v1.CustomResourceDefinitionBuilder;
-import io.fabric8.kubernetes.api.model.apiextensions.v1.CustomResourceDefinitionFluent;
-import io.fabric8.kubernetes.api.model.apiextensions.v1.CustomResourceSubresourceStatus;
-import io.fabric8.kubernetes.api.model.apiextensions.v1.JSONSchemaProps;
+import io.fabric8.kubernetes.api.model.apiextensions.v1.*;
 import io.fabric8.kubernetes.client.CustomResourceList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
@@ -18,6 +14,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -57,10 +54,29 @@ public class CrdDeployer {
             if (schema != null) {
                 removeDefaultValues(schema);
             }
+
+            CustomResourceValidation customResourceValidation = new CustomResourceValidationBuilder()
+                    .withNewOpenAPIV3Schema()
+                    .withDescription("api schema")
+                    .withType("object")
+                    .withProperties(Map.of("sepc", new JSONSchemaPropsBuilder().withType("object").withXKubernetesPreserveUnknownFields(true).build()))
+                    .endOpenAPIV3Schema()
+                    .build();
+
+            CustomResourceDefinitionVersion customResourceDefinitionVersion = new CustomResourceDefinitionVersionBuilder()
+                    .withServed(true)
+                    .withStorage(true)
+                    .withName("v1")
+                    .withSchema(customResourceValidation)
+                    .build();
+
             builder = getCRDBuilder(newPrefix,
                                     entityName,
                                     shortNames,
-                                    pluralName);
+                                    pluralName)
+                    .withGroup("radanalytics.io")
+                    .withScope("Namespaced")
+                    .withVersions(customResourceDefinitionVersion);
             crdToReturn = builder.endSpec().build();
             try {
                client.apiextensions().v1().customResourceDefinitions().createOrReplace(crdToReturn);
@@ -79,7 +95,7 @@ public class CrdDeployer {
         }
 
         // register the new crd for json serialization
-        io.fabric8.kubernetes.internal.KubernetesDeserializer.registerCustomKind(newPrefix + "/" + crdToReturn.getSpec().getVersions().get(0) + "#" + entityName, InfoClass.class);
+        io.fabric8.kubernetes.internal.KubernetesDeserializer.registerCustomKind(newPrefix + "/" + crdToReturn.getSpec().getVersions().get(0) + "#" + entityName, SparkCluster.class);
         io.fabric8.kubernetes.internal.KubernetesDeserializer.registerCustomKind(newPrefix + "/" + crdToReturn.getSpec().getVersions().get(0) + "#" + entityName + "List", CustomResourceList.class);
 
         return crdToReturn;
@@ -114,6 +130,15 @@ public class CrdDeployer {
                                          .map(sn -> sn.toLowerCase())
                                          .toArray(String[]::new);
 
+
+
+        CustomResourceDefinitionVersion customResourceDefinitionVersion = new CustomResourceDefinitionVersionBuilder()
+                .withName("v1")
+                .withServed(true)
+                .withStorage(true)
+//                .withSchema(customResourceValidation)
+                .build();
+
         return new CustomResourceDefinitionBuilder()
                 .withApiVersion("apiextensions.k8s.io/v1")
                 .withNewMetadata().withName(plural + "." + prefix)
@@ -124,6 +149,8 @@ public class CrdDeployer {
                     .withPlural(plural)
                     .withShortNames(Arrays.asList(shortNamesLower)).endNames()
                 .withGroup(prefix)
-                .withScope("Namespaced");
+                .withScope("Namespaced")
+                .withVersions(customResourceDefinitionVersion)
+                ;
     }
 }

@@ -3,7 +3,7 @@ package io.radanalytics.operator.common;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.apiextensions.v1.CustomResourceDefinition;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.radanalytics.operator.common.crd.InfoClass;
+import io.radanalytics.operator.common.crd.SparkCluster;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
@@ -21,7 +21,7 @@ public class CustomResourceWatcher<T extends EntityInfo> extends AbstractWatcher
                                   BiConsumer<T, String> onAdd,
                                   BiConsumer<T, String> onDelete,
                                   BiConsumer<T, String> onModify,
-                                  Function<InfoClass, T> convert) {
+                                  Function<SparkCluster, T> convert) {
         super(true, namespace, entityName, client, crd, null, onAdd, onDelete, onModify, null, null, convert);
     }
 
@@ -34,7 +34,7 @@ public class CustomResourceWatcher<T extends EntityInfo> extends AbstractWatcher
         private BiConsumer<T, String> onAdd;
         private BiConsumer<T, String> onDelete;
         private BiConsumer<T, String> onModify;
-        private Function<InfoClass, T> convert;
+        private Function<SparkCluster, T> convert;
 
         public Builder<T> withNamespace(String namespace) {
             this.namespace = namespace;
@@ -71,7 +71,7 @@ public class CustomResourceWatcher<T extends EntityInfo> extends AbstractWatcher
             return this;
         }
 
-        public Builder<T> withConvert(Function<InfoClass, T> convert) {
+        public Builder<T> withConvert(Function<SparkCluster, T> convert) {
             this.convert = convert;
             return this;
         }
@@ -81,7 +81,7 @@ public class CustomResourceWatcher<T extends EntityInfo> extends AbstractWatcher
         }
     }
 
-    public static <T extends EntityInfo> T defaultConvert(Class<T> clazz, InfoClass info) {
+    public static <T extends EntityInfo> T defaultConvert(Class<T> clazz, SparkCluster info) {
         String name = info.getMetadata().getName();
         String namespace = info.getMetadata().getNamespace();
         ObjectMapper mapper = new ObjectMapper();

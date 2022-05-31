@@ -7,7 +7,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
-public class InfoStatus implements KubernetesResource {
+public class SparkStatus implements KubernetesResource {
 
     private String state;
     private String lastTransitionTime;
@@ -18,13 +18,13 @@ public class InfoStatus implements KubernetesResource {
         return df.format(date);
     }
 
-    public InfoStatus() {
+    public SparkStatus() {
         super();
         this.state = "initial";
         this.lastTransitionTime = toDateString(new Date());
     }
     
-    public InfoStatus(String state, Date dt) {
+    public SparkStatus(String state, Date dt) {
         super();
         this.state = state;
         this.lastTransitionTime = toDateString(dt);

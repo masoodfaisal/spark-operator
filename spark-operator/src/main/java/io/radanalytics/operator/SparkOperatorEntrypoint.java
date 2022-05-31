@@ -27,7 +27,7 @@ import java.util.concurrent.ScheduledFuture;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 @ApplicationScoped
-public class SparkOperatorEntrypoint{
+public class SparkOperatorEntrypoint {
     @Inject
     private Logger log;
 
@@ -88,23 +88,29 @@ public class SparkOperatorEntrypoint{
     }
 
     private Ingress createIngressForMetrics() {
-            Ingress ingress = new IngressBuilder().withNewMetadata().withName("spark-operator-metrics")
-                    .withLabels(Collections.singletonMap("type", "operator-metrics")).endMetadata()
-                    .withNewSpec().withRules(new IngressRuleBuilder().withNewHttp()
-                            .withPaths(new HTTPIngressPathBuilder().withNewBackend().withServiceName("spark-operator-metrics")
-                                    .withNewServicePort(entrypoint.getConfig().getMetricsPort()).endBackend().build()).endHttp().build())
-                    .endSpec().build();
-            return ingress;
+        Ingress ingress = new IngressBuilder()
+                .withApiVersion("networking.k8s.io/v1")
+                .withNewMetadata()
+                    .withName("spark-operator-metrics")
+                    .withLabels(Collections.singletonMap("type", "operator-metrics"))
+                .endMetadata()
+                .withNewSpec().
+                    withRules(new IngressRuleBuilder()
+                    .withNewHttp()
+                     .withPaths(new HTTPIngressPathBuilder().withNewBackend().withServiceName("spark-operator-metrics")
+                                .withNewServicePort(entrypoint.getConfig().getMetricsPort()).endBackend().build()).endHttp().build())
+                .endSpec().build();
+        return ingress;
     }
 
 
     private Route createRouteForMetrics() {
-            Route route = new RouteBuilder().withNewMetadata().withName("spark-operator-metrics")
-                    .withLabels(Collections.singletonMap("type", "operator-metrics")).endMetadata()
-                    .withNewSpec()
-                    .withNewTo("Service", "spark-operator-metrics", 100)
-                    .endSpec().build();
-            return route;
+        Route route = new RouteBuilder().withNewMetadata().withName("spark-operator-metrics")
+                .withLabels(Collections.singletonMap("type", "operator-metrics")).endMetadata()
+                .withNewSpec()
+                .withNewTo("Service", "spark-operator-metrics", 100)
+                .endSpec().build();
+        return route;
     }
 
     private Service createServiceForMetrics() {

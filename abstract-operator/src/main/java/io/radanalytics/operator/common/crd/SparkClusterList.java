@@ -5,5 +5,5 @@ import io.fabric8.kubernetes.client.CustomResourceList;
 import io.fabric8.kubernetes.internal.KubernetesDeserializer;
 
 @JsonDeserialize(using = KubernetesDeserializer.class)
-public class InfoList<V> extends CustomResourceList<InfoClass<V>> {
+public class SparkClusterList<V> extends CustomResourceList<SparkCluster<V>> {
 }

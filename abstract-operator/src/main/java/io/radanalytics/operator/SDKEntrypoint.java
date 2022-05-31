@@ -4,10 +4,7 @@ import com.jcabi.manifests.Manifests;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.api.model.ServicePortBuilder;
-import io.fabric8.kubernetes.client.ConfigBuilder;
-import io.fabric8.kubernetes.client.DefaultKubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.Watch;
+import io.fabric8.kubernetes.client.*;
 import io.fabric8.kubernetes.client.utils.HttpClientUtils;
 import io.prometheus.client.Gauge;
 import io.prometheus.client.exporter.HTTPServer;
@@ -151,7 +148,8 @@ public class SDKEntrypoint {
     }
 
     private CompletableFuture<Void> runForNamespace(boolean isOpenShift, String namespace, long reconInterval, int delay) {
-        List<AbstractOperator<? extends EntityInfo>> operatorList = operators.stream().collect(Collectors.toList());
+        List<AbstractOperator<? extends EntityInfo>>
+                operatorList = operators.stream().collect(Collectors.toList());
 
         if (operatorList.isEmpty()) {
             log.warn("No suitable operators were found, make sure your class extends AbstractOperator and have @Singleton on it.");
@@ -205,6 +203,10 @@ public class SDKEntrypoint {
     }
 
     private void checkIfOnOpenshift() {
+        log.warn("K8s rules {}",  client.getMasterUrl());
+        isOpenShift = false;
+
+/*
         try {
             URL kubernetesApi = client.getMasterUrl();
 
@@ -237,6 +239,8 @@ public class SDKEntrypoint {
             log.warn("Let's assume we are on K8s");
             isOpenShift = false;
         }
+*/
+
     }
 
     private void printInfo() {
